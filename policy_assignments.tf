@@ -1,9 +1,11 @@
 resource "azurerm_resource_group_policy_assignment" "baseline_assignment" {
-  name                 = "assign-platform-baseline"
-  resource_group_id    = var.assignment_scope
+  for_each = data.azurerm_resource_group.targets
+
+  name                 = "assign-baseline-${each.key}"
+  resource_group_id    = each.value.id
   policy_definition_id = azurerm_policy_set_definition.platform_baseline.id
-  display_name         = "Platform Baseline Governance Assignment"
-  description          = "Baseline guardrails enforced on workloads."
+  display_name         = "Platform Baseline [${each.key}]"
+  description          = "Baseline guardrails enforced on ${each.key}."
   enforce              = true
   location             = var.assignment_location
 
