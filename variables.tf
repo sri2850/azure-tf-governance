@@ -38,3 +38,9 @@ variable "allowed_vm_skus" {
   description = "List of approved Azure VM SKUs."
   default     = ["Standard_B2s", "Standard_D2s_v5", "Standard_D4s_v5"]
 }
+
+variable "target_resource_groups" {
+  type        = list(string)
+  description = "List of target resource group names where baseline governance will be enforced."
+  default     = ["rg-governance-test-eastus"]
+}

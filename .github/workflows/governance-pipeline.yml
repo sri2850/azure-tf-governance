@@ -10,7 +10,7 @@ on:
 
 permissions:
   id-token: write # Mandatory for OIDC authentication to Azure
-  contents: write # Required to create git tags and releases
+  contents: write # Required to push git tags and create releases
   pull-requests: write
 
 env:
@@ -36,6 +36,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Azure Login via OIDC
         uses: azure/login@v2
@@ -50,7 +51,7 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="subscription_id=${{env.ARM_SUBSCRIPTION_ID}}" \
+            -backend-config="subscription_id=${{ env.ARM_SUBSCRIPTION_ID }}" \
             -backend-config="resource_group_name=state-mgmt-dev" \
             -backend-config="storage_account_name=statemgmtdev01" \
             -backend-config="container_name=tfstate" \
@@ -78,9 +79,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Need full history to calculate tags
+          fetch-depth: 0 # Pull full git history for correct tag calculation
 
-      # Auto-generate Git Tag based on CalVer / SemVer
+      # Auto-generate Git Tag based on commits/releases
       - name: Bump Version and Push Tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
@@ -94,6 +95,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
       - name: Azure Login via OIDC
         uses: azure/login@v2
@@ -105,6 +107,7 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
+            -backend-config="subscription_id=${{ env.ARM_SUBSCRIPTION_ID }}" \
             -backend-config="resource_group_name=state-mgmt-dev" \
             -backend-config="storage_account_name=statemgmtdev01" \
             -backend-config="container_name=tfstate" \
@@ -113,8 +116,8 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          # Pass the newly minted git tag directly into metadata version
-          CURRENT_RELEASE="${{ steps.tag_version.outputs.new_tag }}"
+          # Extract release tag output (fallback to 2026.1.0 if repository had zero tags)
+          CURRENT_RELEASE="${{ steps.tag_version.outputs.new_tag || 'v2026.1.0' }}"
           CLEAN_VERSION="${CURRENT_RELEASE#v}"
 
           echo "Deploying Governance Baseline Version: ${CLEAN_VERSION}"
@@ -122,15 +125,11 @@ jobs:
           terraform apply -auto-approve \
             -var="governance_version=${CLEAN_VERSION}"
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
+      - name: Create GitHub Release via GH CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.tag_version.outputs.new_tag }}
-          release_name: "Release ${{ steps.tag_version.outputs.new_tag }}"
-          body: |
-            Platform Governance Policy Set Release ${{ steps.tag_version.outputs.new_tag }}.
-            Automatically synced and applied to Azure Resource Manager.
-          draft: false
-          prerelease: false
+          NEW_TAG: ${{ steps.tag_version.outputs.new_tag || 'v2026.1.0' }}
+        run: |
+          gh release create "$NEW_TAG" \
+            --title "Release $NEW_TAG" \
+            --notes "Platform Governance Policy Set Release $NEW_TAG. Synced and applied to Azure Resource Manager."
