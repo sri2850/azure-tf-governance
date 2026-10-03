@@ -56,7 +56,8 @@ jobs:
             -backend-config="storage_account_name=statemgmtdev01" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=governance/dev.governance.tfstate" \
-            -backend-config="use_azuread_auth=true"
+            -backend-config="use_azuread_auth=true" \
+            -backend-config="use_oidc=true"
 
       - name: Terraform Validate
         run: terraform validate
@@ -113,7 +114,8 @@ jobs:
             -backend-config="storage_account_name=statemgmtdev01" \
             -backend-config="container_name=tfstate" \
             -backend-config="key=governance/dev.governance.tfstate" \
-            -backend-config="use_azuread_auth=true"
+            -backend-config="use_azuread_auth=true" \
+            -backend-config="use_oidc=true"
 
       - name: Terraform Apply
         run: |
