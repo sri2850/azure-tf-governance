@@ -65,6 +65,7 @@ jobs:
         id: plan
         run: |
           terraform plan \
+            -var="assignment_scope=rg-governance-test-eastus" \
             -var="governance_version=PR-${{ github.event.pull_request.number }}-preview" \
             -no-color -out=tfplan
 
@@ -116,13 +117,11 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          # Extract release tag output (fallback to 2026.1.0 if repository had zero tags)
           CURRENT_RELEASE="${{ steps.tag_version.outputs.new_tag || 'v2026.1.0' }}"
           CLEAN_VERSION="${CURRENT_RELEASE#v}"
 
-          echo "Deploying Governance Baseline Version: ${CLEAN_VERSION}"
-
           terraform apply -auto-approve \
+            -var="assignment_scope=rg-governance-test-eastus" \
             -var="governance_version=${CLEAN_VERSION}"
 
       - name: Create GitHub Release via GH CLI
