@@ -1,0 +1,135 @@
+name: "Platform Governance Pipeline"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write # Mandatory for OIDC authentication to Azure
+  contents: write # Required to create git tags and releases
+  pull-requests: write
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: "true"
+  TF_VERSION: "1.6.0"
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Validate & Speculative Plan (PR Gate)
+  # -------------------------------------------------------------
+  terraform-plan:
+    name: "Terraform Lint & Plan"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=state-mgmt-dev" \
+            -backend-config="storage_account_name=statemgmtdev01" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=governance/dev.governance.tfstate" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="governance_version=PR-${{ github.event.pull_request.number }}-preview" \
+            -no-color -out=tfplan
+
+  # -------------------------------------------------------------
+  # Job 2: Tag & Apply (Post-Merge to main)
+  # -------------------------------------------------------------
+  terraform-apply:
+    name: "Automate Tag & Terraform Apply"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history to calculate tags
+
+      # Auto-generate Git Tag based on CalVer / SemVer
+      - name: Bump Version and Push Tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: minor
+          release_branches: main
+          tag_prefix: "v"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.ARM_CLIENT_ID }}
+          tenant-id: ${{ env.ARM_TENANT_ID }}
+          subscription-id: ${{ env.ARM_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=tfstate-governance" \
+            -backend-config="key=governance/dev.governance.tfstate" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Terraform Apply
+        run: |
+          # Pass the newly minted git tag directly into metadata version
+          CURRENT_RELEASE="${{ steps.tag_version.outputs.new_tag }}"
+          CLEAN_VERSION="${CURRENT_RELEASE#v}"
+
+          echo "Deploying Governance Baseline Version: ${CLEAN_VERSION}"
+
+          terraform apply -auto-approve \
+            -var="governance_version=${CLEAN_VERSION}"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}
+          release_name: "Release ${{ steps.tag_version.outputs.new_tag }}"
+          body: |
+            Platform Governance Policy Set Release ${{ steps.tag_version.outputs.new_tag }}.
+            Automatically synced and applied to Azure Resource Manager.
+          draft: false
+          prerelease: false
