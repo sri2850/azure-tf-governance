@@ -1,0 +1,29 @@
+{
+  "name": "initiative-platform-baseline",
+  "displayName": "Platform Baseline Governance",
+  "description": "Enterprise baseline covering SKU guardrails, mandatory tagging, and compute host encryption.",
+  "policies": [
+    {
+      "definitionKey": "deny_missing_cost_center",
+      "referenceId": "TagGovernanceRef",
+      "parameters": {
+        "effect": "[parameters('tagGovernanceEffect')]",
+        "tagName": "[parameters('mandatoryTagName')]"
+      }
+    },
+    {
+      "definitionKey": "audit_unencrypted_disks",
+      "referenceId": "HostEncryptionRef",
+      "parameters": {
+        "effect": "[parameters('hostEncryptionEffect')]"
+      }
+    },
+    {
+      "builtInDisplayName": "Allowed virtual machine size SKUs",
+      "referenceId": "AllowedVmSkusRef",
+      "parameters": {
+        "listOfAllowedSKUs": "[parameters('allowedVmSizes')]"
+      }
+    }
+  ]
+}

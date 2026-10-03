@@ -1,0 +1,35 @@
+{
+  "name": "deny-missing-cost-center",
+  "displayName": "Enforce CostCenter Tag on Workloads",
+  "description": "Audits or denies creation or update of indexed resources lacking the mandatory CostCenter tag.",
+  "mode": "Indexed",
+  "category": "Platform Governance",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Deny, Audit, or Disabled"
+      },
+      "allowedValues": ["Audit", "Deny", "Disabled"],
+      "defaultValue": "Deny"
+    },
+    "tagName": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Tag Name",
+        "description": "Name of the mandatory billing tag"
+      },
+      "defaultValue": "CostCenter"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "field": "[concat('tags[', parameters('tagName'), ']')]",
+      "exists": "false"
+    },
+    "then": {
+      "effect": "[parameters('effect')]"
+    }
+  }
+}
