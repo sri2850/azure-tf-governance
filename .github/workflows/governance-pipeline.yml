@@ -104,9 +104,9 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=tfstate-governance" \
+            -backend-config="resource_group_name=state-mgmt-dev" \
+            -backend-config="storage_account_name=statemgmtdev01" \
+            -backend-config="container_name=tfstate" \
             -backend-config="key=governance/dev.governance.tfstate" \
             -backend-config="use_azuread_auth=true"
 
