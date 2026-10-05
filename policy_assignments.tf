@@ -1,13 +1,14 @@
-resource "azurerm_resource_group_policy_assignment" "baseline_assignment" {
-  for_each = data.azurerm_resource_group.targets
-
-  name                 = "assign-baseline-${each.key}"
-  resource_group_id    = each.value.id
+resource "azurerm_management_group_policy_assignment" "baseline_assignment" {
+  name                 = "assign-platform-baseline"
+  management_group_id  = var.management_group_id
   policy_definition_id = azurerm_policy_set_definition.platform_baseline.id
-  display_name         = "Platform Baseline [${each.key}]"
-  description          = "Baseline guardrails enforced on ${each.key}."
+  display_name         = "Platform Baseline Governance [Enterprise MG]"
+  description          = "Baseline guardrails inherited by all subscriptions and resource groups under this Management Group."
   enforce              = true
   location             = var.assignment_location
+  not_scopes = [
+    "/subscriptions/0475e5df-75dc-440f-92b4-55c6f373bcf5/resourceGroups/rg-platform-artifacts-eastus"
+  ]
 
   identity {
     type = "SystemAssigned"
@@ -21,17 +22,17 @@ resource "azurerm_resource_group_policy_assignment" "baseline_assignment" {
   })
 
   non_compliance_message {
-    content                        = "Policy Violation: The selected VM SKU is unapproved. Consult platform documentation."
+    content                        = "Platform Violation: Selected VM SKU is not permitted under corporate landing zone baseline."
     policy_definition_reference_id = "AllowedVmSkusRef"
   }
 
   non_compliance_message {
-    content                        = "Policy Violation: Mandatory '${var.mandatory_tag_name}' tag is missing from the resource payload."
+    content                        = "Platform Violation: Missing mandatory '${var.mandatory_tag_name}' tag."
     policy_definition_reference_id = "TagGovernanceRef"
   }
 
   non_compliance_message {
-    content                        = "Policy Violation: VM host encryption is required for platform workloads."
+    content                        = "Platform Violation: Host encryption is required for all platform compute instances."
     policy_definition_reference_id = "HostEncryptionRef"
   }
 }

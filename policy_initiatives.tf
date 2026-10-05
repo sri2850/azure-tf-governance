@@ -3,10 +3,11 @@ locals {
 }
 
 resource "azurerm_policy_set_definition" "platform_baseline" {
-  name         = local.initiative_raw.name
-  policy_type  = "Custom"
-  display_name = local.initiative_raw.displayName
-  description  = local.initiative_raw.description
+  name                = local.initiative_raw.name
+  policy_type         = "Custom"
+  display_name        = local.initiative_raw.displayName
+  description         = local.initiative_raw.description
+  management_group_id = var.management_group_id # Sets initiative scope to MG
 
   metadata = jsonencode({
     version  = var.governance_version
@@ -17,30 +18,18 @@ resource "azurerm_policy_set_definition" "platform_baseline" {
     tagGovernanceEffect = {
       type         = "String"
       defaultValue = var.tag_governance_effect
-      metadata = {
-        displayName = "Tag Governance Effect"
-      }
     }
     mandatoryTagName = {
       type         = "String"
       defaultValue = var.mandatory_tag_name
-      metadata = {
-        displayName = "Required Tag Name"
-      }
     }
     hostEncryptionEffect = {
       type         = "String"
       defaultValue = var.host_encryption_effect
-      metadata = {
-        displayName = "Host Encryption Effect"
-      }
     }
     allowedVmSizes = {
       type         = "Array"
       defaultValue = var.allowed_vm_skus
-      metadata = {
-        displayName = "Allowed VM SKUs"
-      }
     }
   })
 

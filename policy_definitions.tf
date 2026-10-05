@@ -10,11 +10,12 @@ locals {
 resource "azurerm_policy_definition" "catalog" {
   for_each = local.definitions_raw
 
-  name         = each.value.name
-  display_name = each.value.displayName
-  description  = lookup(each.value, "description", null)
-  policy_type  = "Custom"
-  mode         = each.value.mode
+  name                = each.value.name
+  display_name        = each.value.displayName
+  description         = lookup(each.value, "description", null)
+  policy_type         = "Custom"
+  mode                = each.value.mode
+  management_group_id = var.management_group_id # Sets definition scope to MG
 
   metadata = jsonencode({
     version  = var.governance_version
