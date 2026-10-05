@@ -1,0 +1,49 @@
+{
+  "name": "deny-unapproved-vm-images",
+  "displayName": "Deny Unapproved VM Image Sources",
+  "description": "Restricts VM and VMSS deployments strictly to the approved Azure Compute Gallery.",
+  "mode": "Indexed",
+  "category": "Compute Governance",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "allowedValues": ["Audit", "Deny", "Disabled"],
+      "defaultValue": "Deny"
+    },
+    "allowedGalleryIdPrefix": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Approved Gallery Resource ID Prefix",
+        "description": "ARM ID prefix of approved Compute Gallery"
+      }
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "in": [
+            "Microsoft.Compute/virtualMachines",
+            "Microsoft.Compute/virtualMachineScaleSets"
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "field": "Microsoft.Compute/imageId",
+              "exists": "false"
+            },
+            {
+              "field": "Microsoft.Compute/imageId",
+              "notStartsWith": "[parameters('allowedGalleryIdPrefix')]"
+            }
+          ]
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]"
+    }
+  }
+}
