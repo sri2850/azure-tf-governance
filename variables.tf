@@ -16,21 +16,21 @@ variable "assignment_location" {
 }
 
 variable "tag_governance_effect" {
-  type        = string
-  default     = "Deny"
+  type    = string
+  default = "Deny"
 }
 
 variable "mandatory_tag_name" {
-  type        = string
-  default     = "CostCenter"
+  type    = string
+  default = "CostCenter"
 }
 
 variable "host_encryption_effect" {
-  type        = string
-  default     = "Audit"
+  type    = string
+  default = "Audit"
 }
 
 variable "allowed_vm_skus" {
-  type        = list(string)
-  default     = ["Standard_B2s", "Standard_D2s_v5", "Standard_D4s_v5", "Standard_D2as_v4"] # Added your D2as_v4 SKU
+  type    = list(string)
+  default = ["Standard_B2s", "Standard_D2s_v5", "Standard_D4s_v5", "Standard_D2as_v4"] # Added your D2as_v4 SKU
 }
