@@ -6,6 +6,9 @@ resource "azurerm_management_group_policy_assignment" "baseline_assignment" {
   description          = "Baseline guardrails inherited by all subscriptions and resource groups under this Management Group."
   enforce              = true
   location             = var.assignment_location
+  not_scopes = [
+    "/subscriptions/0475e5df-75dc-440f-92b4-55c6f373bcf5/resourceGroups/rg-platform-artifacts-eastus"
+  ]
 
   identity {
     type = "SystemAssigned"
