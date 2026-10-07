@@ -1,0 +1,29 @@
+on:
+  discussion_comment:
+    types: [created, edited]
+  discussion:
+    types: [created]
+permissions:
+  discussions: write
+  contents: read
+
+jobs:
+  gemini_respond:
+    if: contains(github.event.comment.body, '@ai-agent')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Model Tag
+        id: extract_model
+        shell: bash
+        run: |
+          MODEL=$(echo "$COMMENT_BODY" | head -n 1 | grep -oP '@model\s+\K[a-zA-Z0-9.-]+' || echo "auto")
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+
+      - uses: Val-d-emar/gemini-discussions-agent@v1
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          agent_prompt: "Analyze the discussion and provide a technically accurate response."
+          agent_language: "English"
+          agent_model: ${{ steps.extract_model.outputs.model }}
