@@ -1,3 +1,4 @@
+name: agent flow
 on:
   discussion_comment:
     types: [created, edited]
