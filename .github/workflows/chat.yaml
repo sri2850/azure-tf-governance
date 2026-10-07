@@ -1,0 +1,19 @@
+name: Ask Gemini
+
+on: [push]
+
+jobs:
+  chat_with_gemini:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Call Gemini Action
+        id: gemini_response
+        uses: ViRGiL175/gemini-chat-action@main
+        with:
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
+          text: "Translate 'Hello, world!' to Spanish."
+          system-instruction: "You are a helpful translation assistant."
+
+      - name: Show Gemini's Answer
+        run: echo "Gemini says: ${{ steps.gemini_response.outputs.answer }}"
