@@ -3,4 +3,4 @@ resource_group_name  = "state-mgmt-dev"
 storage_account_name = "statemgmtdev01"
 container_name       = "tfstate"
 key                  = "governance/dev.governance.tfstate"
-use_azuread_auth = true
+use_azuread_auth = false
